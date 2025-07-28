@@ -170,10 +170,11 @@ AND R5, R5, #0 ; set result of "how many digits after leftmost digit to put deci
 ; outputting to the screen
 LEA R1, DIGIT_CHARS ; load address of the string/array for custom output handling
 
-FIND_CHAR_LOOP LDR R0, R1, #0 ; load the character R1 is pointing to in the DIGIT_CHARS array
-BRNP DISPLAY_LOOP ; if it exists and isn't null terminator, proceed to displaying it
-ADD R1, R1, #1 ; advance pointer
-BRNZP FIND_CHAR_LOOP
+NOT R4, R4 ; negate the number of digits so we can set the pointer to the correct location\
+ADD R4, R4, #1
+
+ADD R1, R1, #7 ; set the pointer to the start of the digits (we are going to do {end of array addr} - {number of chars} to get the exact location )
+ADD R1, R1, R4 
 
 DISPLAY_LOOP ADD R5, R5, #-1 ; decrement the amount of spaces before we need to put a decimal place (yes this would *theoretically* lead to an extra decimal point but there's not nearly enough characters we could print in this loop for that to happen)
 BRZP #3 ; skip displaying decimal point if we still have digits before decimal place unprinted or have printed the decimal point
@@ -249,10 +250,17 @@ RET
 ;what is multiplication? it's repeated addition -- add A to itself B times
 MULT AND R2, R2, x0 ; clear R2
 
+ADD R0, R0, #0 ; check if multiplying by 0 to ensure that we don't return erroneous answer
+BRZ FIN_MULT
+
+
+ADD R1, R1, #0 ; check if multiplying by 0 to ensure that we don't return erroneous answer
+BRZ FIN_MULT
+
 MULT_LOOP ADD R2, R2, R0 ; add R0 to itself (first pass we set R2=R0, then R2=R0+R0, etc)
 ADD R1, R1, #-1 ; count the number of times we multiplied
 BRP MULT_LOOP ; loop back if we still have more addiitons left
-RET
+FIN_MULT RET
 
 
 ;Log subroutine (rounding or floor). Only takes integers as input, only returns integers as output
