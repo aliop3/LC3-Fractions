@@ -164,24 +164,35 @@ NOT R5, R5 ; negate the number of digits our corresponding power of 10 has so we
 ADD R5, R5, #1
 
 ADD R5, R5, R4 ; subtract the  number of digits our corresponding power of 10 has and our fraction representation to have the correct decimal placement. This will tell us whether we need to put it at the start ("0 places after leftmost digit"), 1 digit after the leftmost digit, etc. All negative values will be set to 0 since it just implies that we put the decimal at the start
-BRZP #1 ; if the result was zero or positive, skip the setting of negative result to 0
-AND R5, R5, #0 ; set result of "how many digits after leftmost digit to put decimal point" to 0 
 
 ; outputting to the screen
 LEA R1, DIGIT_CHARS ; load address of the string/array for custom output handling
 
-NOT R4, R4 ; negate the number of digits so we can set the pointer to the correct location\
+NOT R4, R4 ; negate the number of digits so we can set the pointer to the correct location
 ADD R4, R4, #1
 
 ADD R1, R1, #7 ; set the pointer to the start of the digits (we are going to do {end of array addr} - {number of chars} to get the exact location )
 ADD R1, R1, R4 
+
+ADD R5, R5, #0 ; set condition code based on "digits until zero" counter
+BRZP DISPLAY_LOOP ; skip placing leading zeroes after decimal point if we don't need to - this loop is for fractions like 1/16 that represent as "0.0625"
+
+LD R0, DECIMAL_POINT ; load the ascii value for decimal point into R0
+OUT ; output decimal point
+
+ZERO_PAD_LOOP ADD R5, R5, #1 ; decrement the amount of spaces before we need to put a decimal place (yes this would *theoretically* lead to an extra decimal point but there's not nearly enough characters we could print in this loop for that to happen)
+LD R0, DIGIT_ASCII_OFFSET
+OUT
+BRN ZERO_PAD_LOOP
+
+ADD R5, R5, #15 ; set the "digits until decimal" counter arbitrarily high such that an erroneous decimal place is never printed
 
 DISPLAY_LOOP ADD R5, R5, #-1 ; decrement the amount of spaces before we need to put a decimal place (yes this would *theoretically* lead to an extra decimal point but there's not nearly enough characters we could print in this loop for that to happen)
 BRZP #3 ; skip displaying decimal point if we still have digits before decimal place unprinted or have printed the decimal point
 
 LD R0, DECIMAL_POINT ; load the ascii value for decimal point into R0
 OUT ; output decimal point
-ADD R5, R5, #15 ; will never trigger printing decimal point again
+ADD R5, R5, #15 ; ensure the "print decimal point" code never runs again
 
 LDR R0, R1, #0 ; load R0 with the next digit char
 BRZ FINISHED_OUTPUT ; if we hit the null terminator, we are done
@@ -344,7 +355,7 @@ BRP FIN_DIV ;if we have a remainder, then exit the loop
 
 ADD R0, R0, R1 ;add A and -B to get A-B
 
-ADD R3, R3,#1 ;increment counter by 1
+ADD R3, R3,#-1 ;decrement counter by 1
 
 ADD R0, R0, #0 ;set the condition code bit based on how much we have left to subtract
 BRN NEGATIVE_DIV ; jump back to top of the loop if CC = N (ie R0 still has a negative number)
